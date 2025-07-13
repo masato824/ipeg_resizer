@@ -4,16 +4,67 @@ import piexif
 import io
 import zipfile
 import os
-import tempfile
+import socket
 
-# 最大サイズ選択
-max_size_mb = st.radio("最大ファイルサイズ（MB）を選択", [20, 10, 5, 2, 1])
+# 🌐 IP取得（スマホアクセス用）
+ip_address = socket.gethostbyname(socket.gethostname())
+access_url = f"http://{ip_address}:8501"
 
-uploaded_file = st.file_uploader("JPEG画像またはZIPファイルをアップロード", type=["jpg", "jpeg", "zip"])
+# タイトルと説明
+st.markdown('<h1 style="font-size:180%; margin-bottom:0;">Jpegサイズ圧縮</h1>', unsafe_allow_html=True)
+st.markdown("""
+✅ JPEG画像を一度に複数枚圧縮可能です（合計200MB以下）  
+📷 EXIF情報（日時・GPSなど）を保持します  
+""")
+st.markdown(f"🌐 スマホなどからの接続URL：`{access_url}`")
 
+# 📢 共有UI
+st.markdown(f"""
+<div style="background-color:#f2f2f2; padding:10px; border-radius:8px;">
+  <h4 style="color:#333; margin-bottom:10px;">📢 <strong>友達に知らせる</strong></h4>
+  <a href="https://line.me/R/msg/text/?JPEGサイズ圧縮ツール%0A{access_url}" target="_blank">
+    <button style="background-color:#00b900; color:white; padding:6px 10px; font-size:90%; border:none; border-radius:5px; margin:4px;">
+      💬 LINEで送る
+    </button>
+  </a>
+  <a href="https://twitter.com/share?url={access_url}&text=JPEGサイズ圧縮アプリ" target="_blank">
+    <button style="background-color:#1DA1F2; color:white; padding:6px 10px; font-size:90%; border:none; border-radius:5px; margin:4px;">
+      🐦 X（旧Twitter）で共有
+    </button>
+  </a>
+</div>
+""", unsafe_allow_html=True)
+
+# 🔧 圧縮目標サイズ（ラジオボタン）
+st.markdown('<h4 style="color:#333; margin-top:20px;">🔧 <strong>圧縮目標サイズ</strong></h4>', unsafe_allow_html=True)
+selected_size = st.radio(
+    label="圧縮サイズを選択",
+    options=[20, 10, 5, 2, 1],
+    format_func=lambda x: f"{x}MB",
+    horizontal=True
+)
+max_bytes = selected_size * 1024 * 1024
+
+# 📤 JPEGアップロード
+uploaded_files = st.file_uploader(
+    "JPEG画像をアップロード（ZIPファイルは非対応）",
+    type=["jpg", "jpeg"],
+    accept_multiple_files=True
+)
+
+if uploaded_files:
+    st.success(f"{len(uploaded_files)}枚の画像が選択されました。")
+    for file in uploaded_files:
+        st.write("✅ 選択ファイル:", file.name)
+
+# 圧縮関数（EXIF保持）
 def compress_image(image_bytes, max_bytes):
     image = Image.open(io.BytesIO(image_bytes))
     exif_bytes = image.info.get("exif", b"")
+
+    if len(image_bytes) <= max_bytes:
+        return None
+
     quality = 95
     while quality > 10:
         buffer = io.BytesIO()
@@ -23,35 +74,51 @@ def compress_image(image_bytes, max_bytes):
         quality -= 5
     return None
 
-if uploaded_file:
-    max_bytes = max_size_mb * 1024 * 1024
-    output_files = []
+# 圧縮処理
+output_files = []
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        if uploaded_file.name.endswith(".zip"):
-            with zipfile.ZipFile(uploaded_file, "r") as zip_ref:
-                zip_ref.extractall(tmpdir)
-                for filename in os.listdir(tmpdir):
-                    if filename.lower().endswith((".jpg", ".jpeg")):
-                        filepath = os.path.join(tmpdir, filename)
-                        with open(filepath, "rb") as f:
-                            compressed = compress_image(f.read(), max_bytes)
-                            if compressed:
-                                output_files.append((filename, compressed))
-        else:
-            compressed = compress_image(uploaded_file.read(), max_bytes)
+if uploaded_files:
+    for file in uploaded_files:
+        try:
+            image_bytes = file.read()
+            size_mb = round(len(image_bytes) / 1024 / 1024, 2)
+
+            if size_mb > 200:
+                st.warning(f"{file.name} は {size_mb}MB → 200MB超過のため未処理")
+                continue
+
+            if len(image_bytes) <= max_bytes:
+                st.info(f"{file.name} は {size_mb}MB → 対象外（スキップ）")
+                continue
+
+            st.info(f"処理中：{file.name}（{size_mb}MB）")
+            compressed = compress_image(image_bytes, max_bytes)
             if compressed:
-                output_files.append((uploaded_file.name, compressed))
+                final_size = round(len(compressed) / 1024 / 1024, 2)
+                st.success(f"{file.name} → {final_size}MB に圧縮完了")
+                output_files.append((file.name, compressed))
+        except Exception as e:
+            st.error(f"{file.name} の処理でエラー: {e}")
 
-    if output_files:
-        if len(output_files) == 1:
-            filename, data = output_files[0]
-            st.download_button("圧縮画像をダウンロード", data, file_name=filename, mime="image/jpeg")
-        else:
-            zip_buffer = io.BytesIO()
-            with zipfile.ZipFile(zip_buffer, "w") as zip_out:
-                for filename, data in output_files:
-                    zip_out.writestr(filename, data)
-            st.download_button("圧縮画像をZIPでダウンロード", zip_buffer.getvalue(), file_name="resized_images.zip", mime="application/zip")
+# 📥 ダウンロード表示
+if output_files:
+    if len(output_files) == 1:
+        fname, data = output_files[0]
+        st.download_button("📥 圧縮画像をダウンロード", data, file_name=fname, mime="image/jpeg")
     else:
-        st.warning("指定サイズ以下に圧縮できる画像がありませんでした。")
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w") as zip_out:
+            for fname, data in output_files:
+                zip_out.writestr(fname, data)
+        st.download_button("📦 圧縮画像をZIPでダウンロード", zip_buffer.getvalue(), file_name="resized_images.zip", mime="application/zip")
+else:
+    if uploaded_files:
+        st.warning("指定サイズ以上の画像が見つかりませんでした。")
+
+# 赤字で目立つ制限事項
+st.markdown(
+    '<p style="color:red; font-size:90%; font-weight:bold; margin-top:20px;">'
+    '＜制限事項＞スマホで利用する場合は画像ファイル１枚ずつ処理してください。'
+    '</p>',
+    unsafe_allow_html=True
+)
