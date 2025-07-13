@@ -16,8 +16,19 @@ st.markdown("""
 ✅ JPEG画像を一度に複数枚圧縮可能です（合計200MB以下）  
 📷 EXIF情報（日時・GPSなど）を保持します  
 """)
-st.markdown(f"🌐 スマホなどからの接続URL：`{access_url}`")
+# st.markdown(f"🌐 スマホなどからの接続URL：`{access_url}`")
+# 🌐 IP取得（スマホアクセス用）
+ip_address = socket.gethostbyname(socket.gethostname())
+access_url = f"http://{ip_address}:8501"
 
+# ローカル実行時と Cloud 公開時で URL を切り替え
+if not ip_address.startswith("127."):
+    st.markdown(f"🌐 スマホなどからの接続URL：`{access_url}`")
+else:
+    st.markdown(
+        "🌐 このアプリは Streamlit Cloud で公開中です。\n"
+        "`https://masato824-ipeg-resizer.streamlit.app`"
+    )
 # 📢 共有UI
 st.markdown(f"""
 <div style="background-color:#f2f2f2; padding:10px; border-radius:8px;">
