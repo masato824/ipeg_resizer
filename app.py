@@ -1,10 +1,9 @@
-import streamlit as st
-from PIL import Image
-import piexif
 import io
-import zipfile
-import os
+
+import streamlit as st
 import qrcode
+
+from compressor import CompressionError, build_download_zip, compress_bytes
 
 # ブラウザタブ名・favicon（ホーム画面追加時の表示名にも一部反映される）
 st.set_page_config(page_title="JPEG画像圧縮", page_icon="📷")
@@ -76,24 +75,7 @@ if uploaded_files:
     for file in uploaded_files:
         st.write("✅ 選択ファイル:", file.name)
 
-# 圧縮関数（EXIF保持）
-def compress_image(image_bytes, max_bytes):
-    image = Image.open(io.BytesIO(image_bytes))
-    exif_bytes = image.info.get("exif", b"")
-
-    if len(image_bytes) <= max_bytes:
-        return None
-
-    quality = 95
-    while quality > 10:
-        buffer = io.BytesIO()
-        image.save(buffer, format="JPEG", quality=quality, optimize=True, exif=exif_bytes)
-        if buffer.tell() <= max_bytes:
-            return buffer.getvalue()
-        quality -= 5
-    return None
-
-# 圧縮処理
+# 圧縮処理（共通エンジン compressor.compress_bytes を使用）
 output_files = []
 
 if uploaded_files:
@@ -111,11 +93,13 @@ if uploaded_files:
                 continue
 
             st.info(f"処理中：{file.name}（{size_mb}MB）")
-            compressed = compress_image(image_bytes, max_bytes)
+            compressed = compress_bytes(image_bytes, max_bytes)
             if compressed:
                 final_size = round(len(compressed) / 1024 / 1024, 2)
                 st.success(f"{file.name} → {final_size}MB に圧縮完了")
                 output_files.append((file.name, compressed))
+        except CompressionError:
+            st.error(f"{file.name} は指定サイズ以下に圧縮できませんでした")
         except Exception as e:
             st.error(f"{file.name} の処理でエラー: {e}")
 
@@ -125,11 +109,8 @@ if output_files:
         fname, data = output_files[0]
         st.download_button("📥 圧縮画像をダウンロード", data, file_name=fname, mime="image/jpeg")
     else:
-        zip_buffer = io.BytesIO()
-        with zipfile.ZipFile(zip_buffer, "w") as zip_out:
-            for fname, data in output_files:
-                zip_out.writestr(fname, data)
-        st.download_button("📦 圧縮画像をZIPでダウンロード", zip_buffer.getvalue(), file_name="resized_images.zip", mime="application/zip")
+        zip_data = build_download_zip(output_files)
+        st.download_button("📦 圧縮画像をZIPでダウンロード", zip_data, file_name="resized_images.zip", mime="application/zip")
 else:
     if uploaded_files:
         st.warning("指定サイズ以上の画像が見つかりませんでした。")
