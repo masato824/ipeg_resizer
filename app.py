@@ -4,15 +4,10 @@ import piexif
 import io
 import zipfile
 import os
-import socket
 import qrcode
 
 # 🔗 共有時に使う公開URL（Streamlit Cloud上の固定URL）
 PUBLIC_URL = "https://masato824-ipegresizer.streamlit.app/"
-
-# 🌐 IP取得（ローカル実行時の接続案内用）
-ip_address = socket.gethostbyname(socket.gethostname())
-local_access_url = f"http://{ip_address}:8501"
 
 # タイトルと説明
 st.markdown('<h1 style="font-size:180%; margin-bottom:0;">Jpegサイズ圧縮</h1>', unsafe_allow_html=True)
@@ -21,14 +16,10 @@ st.markdown("""
 📷 EXIF情報（日時・GPSなど）を保持します  
 """)
 
-# ローカル実行時と Cloud 公開時で URL 表示を切り替え
-if not ip_address.startswith("127."):
-    st.markdown(f"🌐 スマホなどからの接続URL：`{local_access_url}`")
-else:
-    st.markdown(
-        f"🌐 このアプリは Streamlit Cloud で公開中です。\n"
-        f"`{PUBLIC_URL}`"
-    )
+st.markdown(
+    f"🌐 このアプリは Streamlit Cloud で公開中です。\n"
+    f"`{PUBLIC_URL}`"
+)
 
 # 📢 共有UI（LINE/X共有・URL表示・QRコードは常に公開URLを使用）
 st.markdown(f"""
