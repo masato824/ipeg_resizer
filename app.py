@@ -13,7 +13,7 @@ access_url = f"http://{ip_address}:8501"
 # タイトルと説明
 st.markdown('<h1 style="font-size:180%; margin-bottom:0;">Jpegサイズ圧縮</h1>', unsafe_allow_html=True)
 st.markdown("""
-✅ JPEG画像を一度に複数枚圧縮可能です（合計200MB以下）  
+✅ JPEG画像を一度に複数枚圧縮可能です（1ファイルあたり200MB以下）  
 📷 EXIF情報（日時・GPSなど）を保持します  
 """)
 # st.markdown(f"🌐 スマホなどからの接続URL：`{access_url}`")
