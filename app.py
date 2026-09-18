@@ -4,11 +4,10 @@ import piexif
 import io
 import zipfile
 import os
-import socket
+import qrcode
 
-# 🌐 IP取得（スマホアクセス用）
-ip_address = socket.gethostbyname(socket.gethostname())
-access_url = f"http://{ip_address}:8501"
+# 🔗 共有時に使う公開URL（Streamlit Cloud上の固定URL）
+PUBLIC_URL = "https://masato824-ipegresizer.streamlit.app/"
 
 # タイトルと説明
 st.markdown('<h1 style="font-size:180%; margin-bottom:0;">Jpegサイズ圧縮</h1>', unsafe_allow_html=True)
@@ -16,35 +15,36 @@ st.markdown("""
 ✅ JPEG画像を一度に複数枚圧縮可能です（1ファイルあたり200MB以下）  
 📷 EXIF情報（日時・GPSなど）を保持します  
 """)
-# st.markdown(f"🌐 スマホなどからの接続URL：`{access_url}`")
-# 🌐 IP取得（スマホアクセス用）
-ip_address = socket.gethostbyname(socket.gethostname())
-access_url = f"http://{ip_address}:8501"
 
-# ローカル実行時と Cloud 公開時で URL を切り替え
-if not ip_address.startswith("127."):
-    st.markdown(f"🌐 スマホなどからの接続URL：`{access_url}`")
-else:
-    st.markdown(
-        "🌐 このアプリは Streamlit Cloud で公開中です。\n"
-        "`https://masato824-ipeg-resizer.streamlit.app`"
-    )
-# 📢 共有UI
+st.markdown(
+    f"🌐 このアプリは Streamlit Cloud で公開中です。\n"
+    f"`{PUBLIC_URL}`"
+)
+
+# 📢 共有UI（LINE/X共有・URL表示・QRコードは常に公開URLを使用）
 st.markdown(f"""
 <div style="background-color:#f2f2f2; padding:10px; border-radius:8px;">
   <h4 style="color:#333; margin-bottom:10px;">📢 <strong>友達に知らせる</strong></h4>
-  <a href="https://line.me/R/msg/text/?JPEGサイズ圧縮ツール%0A{access_url}" target="_blank">
+  <a href="https://line.me/R/msg/text/?JPEGサイズ圧縮ツール%0A{PUBLIC_URL}" target="_blank">
     <button style="background-color:#00b900; color:white; padding:6px 10px; font-size:90%; border:none; border-radius:5px; margin:4px;">
       💬 LINEで送る
     </button>
   </a>
-  <a href="https://twitter.com/share?url={access_url}&text=JPEGサイズ圧縮アプリ" target="_blank">
+  <a href="https://twitter.com/share?url={PUBLIC_URL}&text=JPEGサイズ圧縮アプリ" target="_blank">
     <button style="background-color:#1DA1F2; color:white; padding:6px 10px; font-size:90%; border:none; border-radius:5px; margin:4px;">
       🐦 X（旧Twitter）で共有
     </button>
   </a>
 </div>
 """, unsafe_allow_html=True)
+
+st.markdown('<p style="margin-top:12px; margin-bottom:4px;">🔗 <strong>公開URL（タップでコピー）</strong></p>', unsafe_allow_html=True)
+st.code(PUBLIC_URL, language=None)
+
+qr_image = qrcode.make(PUBLIC_URL)
+qr_buffer = io.BytesIO()
+qr_image.save(qr_buffer, format="PNG")
+st.image(qr_buffer.getvalue(), caption="📱 スマホのカメラで読み取って開く", width=180)
 
 # 🔧 圧縮目標サイズ（ラジオボタン）
 st.markdown('<h4 style="color:#333; margin-top:20px;">🔧 <strong>圧縮目標サイズ</strong></h4>', unsafe_allow_html=True)
