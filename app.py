@@ -6,8 +6,13 @@ import zipfile
 import os
 import qrcode
 
-# 🔗 共有時に使う公開URL（Streamlit Cloud上の固定URL）
-PUBLIC_URL = "https://masato824-ipegresizer.streamlit.app/"
+# 🔗 共有時に使う公開URL
+# Streamlit CloudのSecretsに PUBLIC_URL を設定すればここだけで一括反映される。
+# 未設定（ローカル実行など）の場合は下記フォールバック値を使用する。
+try:
+    PUBLIC_URL = st.secrets["PUBLIC_URL"]
+except Exception:
+    PUBLIC_URL = "https://ipegresizer-bfxbqsxxjmhfc727zrdkzr.streamlit.app/"
 
 # タイトルと説明
 st.markdown('<h1 style="font-size:180%; margin-bottom:0;">Jpegサイズ圧縮</h1>', unsafe_allow_html=True)
