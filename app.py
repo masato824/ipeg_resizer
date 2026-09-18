@@ -6,6 +6,9 @@ import zipfile
 import os
 import qrcode
 
+# ブラウザタブ名・favicon（ホーム画面追加時の表示名にも一部反映される）
+st.set_page_config(page_title="JPEG画像圧縮", page_icon="📷")
+
 # 🔗 共有時に使う公開URL
 # Streamlit CloudのSecretsに PUBLIC_URL を設定すればここだけで一括反映される。
 # 未設定（ローカル実行など）の場合は下記フォールバック値を使用する。
